@@ -1,0 +1,6 @@
+bin/*
+httpclient
+*.o
+*.Tpo
+*.dSYM
+.clang
