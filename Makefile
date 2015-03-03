@@ -1,6 +1,7 @@
 CXX := /usr/local/gcc49/bin/g++49
 CXXFLAGS += -std=c++11
 GCC_LIBRARY_PATH=/usr/local/gcc49/lib64
+LDFLAGS += -pthread
 
 BINDIR := ./bin
 SRCS := $(wildcard *.cpp)
@@ -16,9 +17,9 @@ ALL_INCLUDE_DIRS := $(FB_ROOT)/include
 CXXFLAGS += $(addprefix -I,$(ALL_INCLUDE_DIRS))
 LDFLAGS += $(addprefix -L,$(ALL_LIB_DIRS))
 
-FB_LIBS := proxygenlib thriftcpp2 thrift folly event
+FB_LIBS := proxygenlib thriftcpp2 thrift thriftz folly event ssl crypto double-conversion
 
-DYNAMIC_LIBS := rt
+DYNAMIC_LIBS := gflags glog rt dl z
 
 LINK_STATIC_FLAGS := $(addprefix -l,$(FB_LIBS))
 LINK_DYNAMIC_FLAGS := $(addprefix -l,$(DYNAMIC_LIBS))

@@ -1,5 +1,8 @@
 #include <iostream>
 #include <thread>
+#include <folly/ThreadName.h>
+#include <folly/io/async/EventBaseManager.h>
+#include <folly/io/async/EventBase.h>
 #include "httpclient.h"
 
 using namespace mv::httpclient;
@@ -8,11 +11,22 @@ int main(int argc, char** argv)
 {
   std::cout << "Hardware concurrency: " 
             << std::thread::hardware_concurrency() << std::endl;
-  std::thread t([](){
-      std::cout << "Run http client in thread " << std::this_thread::get_id() << std::endl;
-      HTTPClient client;
-      client.TestGet();
+
+// threads eventbases
+  auto manager = folly::EventBaseManager::get();
+  folly::EventBase* main_event_base = manager->getEventBase();
+  std::thread client_event_thread([main_event_base](){
+      folly::setThreadName("client-event-base");
+      std::cout << "Run http client EventBase in thread " << std::this_thread::get_id() << std::endl;
+      std::cout << "Client EventBase loop for ever" << std::endl;
+      main_event_base->loopForever();
+      std::cout << "Client EventBase exit" << std::endl;
     });
-  t.join();
+
+  HTTPClient client(main_event_base);
+  client.Start();
+  client.TestGet();
+
+  client_event_thread.join();
   std::cout << "thread joined" << std::endl;
 }
