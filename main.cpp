@@ -7,7 +7,7 @@
 
 using namespace mv::httpclient;
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
   std::cout << "Hardware concurrency: " 
             << std::thread::hardware_concurrency() << std::endl;
@@ -25,7 +25,12 @@ int main(int argc, char** argv)
 
   HTTPClient client(main_event_base);
   client.Start();
-  client.TestGet();
+
+  if (argc >= 2) {
+    std::string host = argv[1];
+    int timeout = argc > 2 ? atoi(argv[2]) : 100;
+    client.Connect(host, std::chrono::milliseconds(timeout));
+  }
 
   client_event_thread.join();
   std::cout << "thread joined" << std::endl;

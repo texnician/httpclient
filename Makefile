@@ -41,12 +41,12 @@ install:
 
 $(TARGET): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^ -Wl,-Bstatic $(LINK_STATIC_FLAGS) -Wl,-Bdynamic $(LINK_DYNAMIC_FLAGS) -Wl,-rpath=$(GCC_LIBRARY_PATH)
-	@which dsymutil 2&>1 > /dev/null ; if [ $$? -eq 0 ] ; then dsymutil $@ ; fi
+#@which dsymutil 2&> 1 > /dev/null ; if [ $$? -eq 0 ] ; then dsymutil $@ ; fi
 	@grep -xq "$@" .gitignore || echo $@ >> .gitignore
 
 %: %.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
-	@which dsymutil 2&>1 > /dev/null ; if [ $$? -eq 0 ] ; then dsymutil $@ ; fi
+#@which dsymutil 2&>1 > /dev/null ; if [ $$? -eq 0 ] ; then dsymutil $@ ; fi
 	@grep -xq "$@" .gitignore || echo $@ >> .gitignore
 
 
