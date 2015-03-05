@@ -1,6 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <deque>
+#include <vector>
+#include <map>
+#include <thread>
 #include <thrift/lib/cpp/async/TAsyncSocket.h>
 #include <proxygen/lib/utils/AsyncTimeoutSet.h>
 #include <proxygen/lib/http/HTTPConnector.h>
@@ -19,7 +23,9 @@ class HTTPUpstreamSession;
 
 namespace mv { namespace httpclient {
 
-class HTTPClient : public proxygen::HTTPConnector::Callback
+class HTTPClientConnector;
+
+class HTTPClient
 {
 public:
   // Create a new HTTPClient
@@ -31,17 +37,49 @@ public:
 
   void Start();
 
+private:
+  friend class HTTPClientConnector;
+  using ConnectorPtr = std::unique_ptr<HTTPClientConnector>;
+  HTTPClientConnector* GetConnector();
+  void ReleaseConnector(HTTPClientConnector* connector);
+
+  void AddSession(int32_t id, int32_t session_id,
+                  proxygen::HTTPUpstreamSession* session);
+
+  int32_t connector_count_{0};
+  std::mutex cm_;
+  std::deque<ConnectorPtr> connectors_;
+  folly::EventBase* main_event_base_{nullptr};
+  proxygen::AsyncTimeoutSet::UniquePtr client_timeout_set_;
+  std::string host_;
+  std::vector<std::map<int32_t, proxygen::HTTPUpstreamSession*> > sessions_;
+};
+
+class HTTPClientConnector : public proxygen::HTTPConnector::Callback
+{
+public:
+  HTTPClientConnector(int32_t id, HTTPClient* client);
+  ~HTTPClientConnector();
+
+  HTTPClientConnector(HTTPClientConnector&& rhs);
+  HTTPClientConnector& operator=(HTTPClientConnector&& rhs);
+
+  void Connect(folly::EventBase*, proxygen::AsyncTimeoutSet*,
+               const std::string& host, std::chrono::milliseconds timeout);
+
+  int32_t GetID() const { return id_; }
+  bool isBusy() const { return connector_ && connector_->isBusy(); }
+
   // connect callback interface
   virtual void connectSuccess(proxygen::HTTPUpstreamSession* session);
   virtual void connectError(
-      const apache::thrift::transport::TTransportException& ex);
+    const apache::thrift::transport::TTransportException& ex);
 
 private:
+  int32_t id_;
+  int32_t count_{0};
+  HTTPClient* client_{nullptr};
   std::unique_ptr<proxygen::HTTPConnector> connector_;
-  folly::EventBase* main_event_base_{nullptr};
-  
-  proxygen::AsyncTimeoutSet::UniquePtr client_timeout_set_;
-  std::string host_;
 };
 
 class ResponseHandler : public proxygen::HTTPTransactionHandler

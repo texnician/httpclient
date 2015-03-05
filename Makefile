@@ -17,6 +17,10 @@ ALL_INCLUDE_DIRS := $(FB_ROOT)/include
 CXXFLAGS += $(addprefix -I,$(ALL_INCLUDE_DIRS))
 LDFLAGS += $(addprefix -L,$(ALL_LIB_DIRS))
 
+DEP_DIR := .deps
+$(shell test -e $(DEP_DIR) || mkdir $(DEP_DIR))
+DEPS := $(addprefix $(DEP_DIR)/,$(subst .cpp,.Tpo,$(SRCS)))
+
 FB_LIBS := proxygenlib thriftcpp2 thrift thriftz folly event ssl crypto double-conversion
 
 DYNAMIC_LIBS := gflags glog rt dl z
@@ -34,7 +38,10 @@ $(shell test -d $(BINDIR) || mkdir $(BINDIR))
 
 TARGET := httpclient
 
+
 all: $(TARGET)
+
+-include $(DEPS)
 
 install:
 	cp -f $(SINGLE_BINS) $(BINDIR)
@@ -45,13 +52,13 @@ $(TARGET): $(OBJS)
 	@grep -xq "$@" .gitignore || echo $@ >> .gitignore
 
 %: %.o
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -MD -MP -MF .$(DEP_DIR)/$*.Tpo -o $@ $<
 #@which dsymutil 2&>1 > /dev/null ; if [ $$? -eq 0 ] ; then dsymutil $@ ; fi
 	@grep -xq "$@" .gitignore || echo $@ >> .gitignore
 
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -D__MAIN__ -g -o $@ -c $^
+	$(CXX) $(CXXFLAGS) -MD -MP -MF $(DEP_DIR)/$*.Tpo -D__MAIN__ -g -o $@ -c $<
 
 clean:
 	rm -f $(TARGET)
@@ -59,3 +66,4 @@ clean:
 
 distclean: clean
 	rm -f $(BINDIR)/*
+	rm -f $(DEPS)

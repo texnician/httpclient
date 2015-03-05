@@ -4,3 +4,4 @@ httpclient
 *.Tpo
 *.dSYM
 .clang
+*.Tpo
